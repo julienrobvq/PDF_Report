@@ -6,8 +6,9 @@ from qgis.PyQt.QtWidgets import (
 )
 from qgis.core import QgsProject, QgsExpression
 from reportlab.lib.pagesizes import A4
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, PageBreak
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, PageBreak, Image
 from reportlab.lib.styles import getSampleStyleSheet
+import os
 
 
 class RapportEEE(QDialog):
@@ -159,7 +160,7 @@ def get_display_value(layer, feature, field_name):
     return str(value)
 
 
-#  Création du rapport 
+#  Création du rapport
 dlg = RapportEEE()
 if dlg.exec_():
     id_proj, champs, titre_rapport = dlg.get_selection()
@@ -193,6 +194,15 @@ if dlg.exec_():
                     "Rapport.pdf",
                     "Fichiers PDF (*.pdf)"
                 )
+
+                # --- Dossier DCIM situé à côté du projet QGIS actif ---
+                project_path = QgsProject.instance().fileName()
+                project_dir = os.path.dirname(project_path)
+                photo_root = os.path.join(project_dir, "DCIM")
+
+                # Vérification de l’existence du dossier
+                if not os.path.exists(photo_root):
+                    QMessageBox.warning(None, "Avertissement", f"Dossier 'DCIM' introuvable :\n{photo_root}")
                 if not file_path:
                     QMessageBox.information(None, "Annulé", "Génération du rapport annulée.")
                 else:
@@ -278,10 +288,30 @@ if dlg.exec_():
                                         valeur = get_evt_display_value(champ)
                                     else:
                                         continue
-                                    if valeur not in ("", "NULL", "Null"):
-                                        contenu.append(f"<b>{alias}</b> : {valeur}")
+                                if valeur not in ("", "NULL", "Null"):
+                                    if "photo" in champ.lower():
+                                        # Stocker l'image à insérer plus tard
+                                        rel_path = valeur.replace("/", os.sep).replace("\\", os.sep).lstrip(os.sep)
+                                        if rel_path.upper().startswith("DCIM" + os.sep.upper()):
+                                            rel_path = rel_path[len("DCIM" + os.sep):]
+                                        photo_path = os.path.normpath(os.path.join(photo_root, rel_path))
+                                        contenu.append(("photo", alias, photo_path))
+                                    else:
+                                        contenu.append(("texte", alias, valeur))
+
                             if contenu:
-                                story.append(Paragraph("<br/>".join(contenu), styles["BodyText"]))
+                                for typ, alias, valeur in contenu:
+                                    if typ == "texte":
+                                        story.append(Paragraph(f"<b>{alias}</b> : {valeur}", styles["BodyText"]))
+                                    elif typ == "photo":
+                                        if os.path.exists(valeur):
+                                            story.append(Spacer(1, 10))
+                                            img = Image(valeur)
+                                            img._restrictSize(A4[0] - 100, 300)
+                                            story.append(img)
+                                            story.append(Spacer(1, 10))
+                                        else:
+                                            story.append(Paragraph(f"<b>{alias}</b> : [Fichier introuvable : {valeur}]", styles["Italic"]))
                             else:
                                 story.append(Paragraph("(Aucun champ sélectionné pour cette section)", styles["Italic"]))
                             story.append(Spacer(1, 15))
