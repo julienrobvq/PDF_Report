@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from qgis.PyQt.QtWidgets import QDialog, QVBoxLayout, QComboBox, QCheckBox, QLabel, QPushButton, QScrollArea, QWidget, QGridLayout, QMessageBox, QHBoxLayout
+from qgis.PyQt.QtWidgets import QDialog, QVBoxLayout, QComboBox, QCheckBox, QLabel, QPushButton, QScrollArea, QWidget, QGridLayout, QMessageBox, QHBoxLayout, QLineEdit, QFileDialog
 from qgis.core import QgsProject, QgsExpression
 from reportlab.lib.pagesizes import A4
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
@@ -13,9 +13,13 @@ class RapportEEE(QDialog):
         self.resize(380, 420)
 
         layout = QVBoxLayout(self)
-        layout.addWidget(QLabel("Sélectionnez un site :"))
+        layout.addWidget(QLabel("Sélectionnez un projet :"))
         self.site_combo = QComboBox()
         layout.addWidget(self.site_combo)
+        
+        layout.addWidget(QLabel("Titre du rapport :"))
+        self.titre_rapport = QLineEdit()
+        layout.addWidget(self.titre_rapport)
 
         layout.addWidget(QLabel("Champs à inclure :"))
         scroll = QScrollArea()
@@ -119,7 +123,8 @@ class RapportEEE(QDialog):
     def get_selection(self):
         site = self.site_combo.currentText()
         champs = [cb.toolTip() for cb in self.checkboxes if cb.isChecked()]
-        return site, champs
+        titre = self.titre_rapport.text()
+        return site, champs, titre
 
 def get_display_value(layer, feature, field_name):
     """Retourne la valeur affichée dans QGIS pour un champ donné."""
@@ -154,9 +159,10 @@ def get_display_value(layer, feature, field_name):
     return str(value)
 
 # --- Exécution ---
+# --- Exécution ---
 dlg = RapportEEE()
 if dlg.exec_():
-    site, champs = dlg.get_selection()
+    site, champs, titre_rapport = dlg.get_selection()
 
     # --- Récupération des données dans QGIS ---
     layer = QgsProject.instance().mapLayersByName("Form_EEE")[0]
@@ -191,7 +197,8 @@ if dlg.exec_():
 
             if value in (None, ""):
                 return ""
-            
+
+            # Conversion pour QDate / QTime / QDateTime
             if hasattr(value, "toString"):
                 type_name = type(value).__name__
                 if "QDateTime" in type_name:
@@ -224,35 +231,45 @@ if dlg.exec_():
             # Valeur brute sinon
             return str(value)
 
-        # --- Définir les sections et champs associés ---
-        sections = {
-            "Identification": ["site", "Date", "Heure", "ID_Proj"],
-            "Localisation": [
-                "site", "zgie", "region", "Munic", "mrc", "Respo",
-                "Milieu", "Repere", "Contrainte"
-            ],
-            "Observations": [
-                "categorie", "EEE_Type", "lat_flore", "autre_sp",
-                "autre_nom_latin", "Superf_m2", "StadeDev",
-                "site_autre_stade", "site_stade_1", "site_stade_2",
-                "site_stade_3", "site_stade_4", "site_stade_5",
-                "cause_probag", "hote"
-            ],
-            "Traitement": [
-                "Trt_av", "Trt_avQui", "Trt_avType", "TraitRecom"
-            ],
-            "Commentaires et photos": ["EEE_Comment", "photo1"]
-        }
+        # --- Sélection du fichier de sortie ---
+        file_path, _ = QFileDialog.getSaveFileName(
+            None,
+            "Enregistrer le rapport",
+            "Rapport.pdf",
+            "Fichiers PDF (*.pdf)"
+        )
 
-        # --- Création du PDF ---
-        doc = SimpleDocTemplate("Rapport_EEE.pdf", pagesize=A4)
-        styles = getSampleStyleSheet()
-        story = []
+        # Si l'utilisateur annule, on arrête
+        if not file_path:
+            QMessageBox.information(None, "Annulé", "Génération du rapport annulée.")
+        else:
+            # --- Définir les sections et champs associés ---
+            sections = {
+                "Identification": ["site", "Date", "Heure", "ID_Proj"],
+                "Localisation": [
+                    "site", "zgie", "region", "Munic", "mrc", "Respo",
+                    "Milieu", "Repere", "Contrainte"
+                ],
+                "Observations": [
+                    "categorie", "EEE_Type", "lat_flore", "autre_sp",
+                    "autre_nom_latin", "Superf_m2", "StadeDev",
+                    "site_autre_stade", "site_stade_1", "site_stade_2",
+                    "site_stade_3", "site_stade_4", "site_stade_5",
+                    "cause_probag", "hote"
+                ],
+                "Traitement": [
+                    "Trt_av", "Trt_avQui", "Trt_avType", "TraitRecom"
+                ],
+                "Commentaires et photos": ["EEE_Comment", "photo1"]
+            }
 
-        story.append(Paragraph(
-            "Espèces exotiques envahissantes <br/> Première visite de site",
-            styles["Title"]
-        ))
+            # --- Création du PDF ---
+            doc = SimpleDocTemplate(file_path, pagesize=A4)
+            styles = getSampleStyleSheet()
+            story = []
+
+        story.append(Paragraph(titre_rapport, styles["Title"]))
+        
         story.append(Spacer(1, 20))
 
         # --- Parcourir les sections et injecter les champs sélectionnés ---
