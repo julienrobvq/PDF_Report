@@ -11,8 +11,7 @@ class RapportEEEDialog(BaseRapportDialog):
             "site_autre_stade", "site_stade_1", "site_stade_2",
             "site_stade_3", "site_stade_4", "site_stade_5",
             "cause_probag", "hote", "Trt_av", "Trt_avQui",
-            "Trt_avType", "TraitRecom", "EEE_Comment", "photo1",
-            "Date", "Heure", "ID_Proj"
+            "Trt_avType", "TraitRecom", "EEE_Comment", "photo1"
         ]
 
         sections = {
