@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+
 from qgis.PyQt.QtWidgets import (
     QDialog, QVBoxLayout, QComboBox, QCheckBox, QLabel, QPushButton,
     QScrollArea, QWidget, QGridLayout, QMessageBox, QHBoxLayout,
@@ -63,7 +64,7 @@ class RapportEEE(QDialog):
             "Trt_avQui", "Trt_avType", "TraitRecom", "EEE_Comment", "photo1"
         ]
         self.champs_evenement = ["Date", "Heure", "ID_Proj"]
-        self.champs_affiches.extend(self.champs_evenement)
+        self.champs_affiches = self.champs_evenement + self.champs_affiches
 
         self.id_field_proj = "ID_Proj"
         self.remplir_projets()
@@ -105,9 +106,16 @@ class RapportEEE(QDialog):
         self.checkboxes = []
         for i, champ in enumerate(self.champs_affiches):
             if champ in self.layer_form.fields().names():
+                # Alias provenant de la couche Form_EEE
                 alias = self.layer_form.fields().field(champ).alias() or champ
+
+            elif champ in self.layer_evt.fields().names():
+                # Alias provenant de la couche Evenement
+                alias = self.layer_evt.fields().field(champ).alias() or champ
+
             else:
-                alias = f"{champ}"
+                alias = champ
+
             cb = QCheckBox(alias)
             cb.setToolTip(champ)
             self.champ_layout.addWidget(cb, i, 0)
@@ -288,16 +296,16 @@ if dlg.exec_():
                                         valeur = get_evt_display_value(champ)
                                     else:
                                         continue
-                                if valeur not in ("", "NULL", "Null"):
-                                    if "photo" in champ.lower():
-                                        # Stocker l'image à insérer plus tard
-                                        rel_path = valeur.replace("/", os.sep).replace("\\", os.sep).lstrip(os.sep)
-                                        if rel_path.upper().startswith("DCIM" + os.sep.upper()):
-                                            rel_path = rel_path[len("DCIM" + os.sep):]
-                                        photo_path = os.path.normpath(os.path.join(photo_root, rel_path))
-                                        contenu.append(("photo", alias, photo_path))
-                                    else:
-                                        contenu.append(("texte", alias, valeur))
+                                    if valeur not in ("", "NULL", "Null"):
+                                        if "photo" in champ.lower():
+                                            # Stocker l'image à insérer plus tard
+                                            rel_path = valeur.replace("/", os.sep).replace("\\", os.sep).lstrip(os.sep)
+                                            if rel_path.upper().startswith("DCIM" + os.sep.upper()):
+                                                rel_path = rel_path[len("DCIM" + os.sep):]
+                                            photo_path = os.path.normpath(os.path.join(photo_root, rel_path))
+                                            contenu.append(("photo", alias, photo_path))
+                                        else:
+                                            contenu.append(("texte", alias, valeur))
 
                             if contenu:
                                 for typ, alias, valeur in contenu:
