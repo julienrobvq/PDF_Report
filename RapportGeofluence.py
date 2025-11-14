@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from qgis.PyQt.QtWidgets import QAction
 from qgis.PyQt.QtGui import QIcon
-from .dialogs.rapport_eee_dialog import RapportEEEDialog
+from .dialogs.rapport_eee_site_dialog import RapportEEEDialog
 from .dialogs.rapport_actdetection_dialog import RapportActDetectionDialog
 
 class RapportGeofluence:
