@@ -16,7 +16,7 @@ Le choix du format d'exportation se fait au moyen d'un bouton radio. Un seul for
 
 Finalement, vous pouvez sélectionner manuellement les champs que vous souhaitez voir apparaitre dans le rapport. Vous pouvez sélectionner l'ensemble des champs du formulaire en cliquant sur "Tout sélectionner", dans le bas de la fenêtre. À noter que si un champ contient une valeur nulle ou vide pour une entité, celui-ci ne sera pas inclus dans le rapport. 
 
-[image](plugin.jpg)
+![image](./plugin.jpg)
 
 ## Note pour les rapports Word
 
