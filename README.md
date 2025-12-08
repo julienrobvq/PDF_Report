@@ -22,6 +22,6 @@ Finalement, vous pouvez sélectionner manuellement les champs que vous souhaitez
 
 La génération des rapports Word s'effectue au moyen du package python-docx. Pour pouvoir l'utiliser, il faut assurer l'installation du package et des dépendances.
 
-Pour ce faire, copier le contenu du dossier python_docx_bundle du répertoire. Coller ensuite le contenu dans le répertoire site-packages de QGIS, sur votre poste de travail : "C:\Program Files\QGIS 3.40.11\apps\Python312\Lib\site-packages".
+Pour ce faire, copier le contenu du dossier "python_docx" du répertoire. Coller ensuite le contenu dans le répertoire site-packages de QGIS, sur votre poste de travail : "C:\Program Files\QGIS 3.40.11\apps\Python312\Lib\site-packages".
 
 Ce répertoire permet l'installation de packages tiers dans QGIS. Redémarrer QGIS et vous serez en mesure d'exporter des rapports Word.
