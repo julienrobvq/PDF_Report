@@ -171,15 +171,60 @@ class BaseRapportDialog(QDialog):
 
     # Génération du rapport 
     def get_display_value(self, layer, feature, field_name):
-        """Retourne la valeur affichée dans QGIS pour un champ donné (Form_*)."""
         field = layer.fields().field(field_name)
         cfg = field.editorWidgetSetup()
         value = feature.attribute(field_name)
 
-        #  Gestion des dates/heures 
-        from PyQt5.QtCore import QDate, QTime, QDateTime
+        # choix multiple
 
-        # tests directs
+        if isinstance(value, str) and value.startswith("{") and value.endswith("}"):
+            raw = value[1:-1] 
+
+            items = []
+            current = ""
+            in_quotes = False
+
+            for c in raw:
+                if c == '"':
+                    in_quotes = not in_quotes
+                elif c == "," and not in_quotes:
+                    items.append(current.strip().strip('"'))
+                    current = ""
+                else:
+                    current += c
+
+            if current:
+                items.append(current.strip().strip('"'))
+
+            valeurs_affichees = []
+
+            # --- ValueMap ---
+            if cfg.type() == "ValueMap":
+                mapping = cfg.config().get("map", {})
+                for v in items:
+                    valeurs_affichees.append(mapping.get(v, v))
+
+            # --- ValueRelation ---
+            elif cfg.type() == "ValueRelation":
+                rel_layer_id = cfg.config().get("Layer")
+                key_field = cfg.config().get("Key")
+                value_field = cfg.config().get("Value")
+                rel_layer = QgsProject.instance().mapLayer(rel_layer_id)
+
+                if rel_layer:
+                    for v in items:
+                        for f in rel_layer.getFeatures():
+                            if str(f[key_field]) == str(v):
+                                valeurs_affichees.append(str(f[value_field]))
+                                break
+
+            else:
+                valeurs_affichees = items  # sécurité
+
+            return ", ".join(valeurs_affichees)
+
+        # Date - heure
+
         if isinstance(value, QDateTime):
             return value.toString("yyyy-MM-dd HH:mm")
         if isinstance(value, QTime):
@@ -204,7 +249,8 @@ class BaseRapportDialog(QDialog):
         if value in (None, ""):
             return ""
 
-        # ValueMap
+        # Value map
+
         if cfg.type() == "ValueMap":
             mapping = cfg.config().get("map", {})
             for k, v in mapping.items():
@@ -212,7 +258,8 @@ class BaseRapportDialog(QDialog):
                     return v
             return str(value)
 
-        # ValueRelation
+        # Value relation
+
         if cfg.type() == "ValueRelation":
             rel_layer_id = cfg.config().get("Layer")
             key_field = cfg.config().get("Key")
@@ -232,10 +279,56 @@ class BaseRapportDialog(QDialog):
         cfg = field.editorWidgetSetup()
         value = feat_evt.attribute(field_name)
 
-        if value in (None, ""):
-            return ""
-        
-        # tests directs
+        # choix multiple
+
+        if isinstance(value, str) and value.startswith("{") and value.endswith("}"):
+            raw = value[1:-1]
+
+            items = []
+            current = ""
+            in_quotes = False
+
+            for c in raw:
+                if c == '"':
+                    in_quotes = not in_quotes
+                elif c == "," and not in_quotes:
+                    items.append(current.strip().strip('"'))
+                    current = ""
+                else:
+                    current += c
+
+            if current:
+                items.append(current.strip().strip('"'))
+
+            valeurs_affichees = []
+
+            # --- ValueMap ---
+            if cfg.type() == "ValueMap":
+                mapping = cfg.config().get("map", {})
+                for v in items:
+                    valeurs_affichees.append(mapping.get(v, v))
+
+            # --- ValueRelation ---
+            elif cfg.type() == "ValueRelation":
+                rel_layer_id = cfg.config().get("Layer")
+                key_field = cfg.config().get("Key")
+                value_field = cfg.config().get("Value")
+                rel_layer = QgsProject.instance().mapLayer(rel_layer_id)
+
+                if rel_layer:
+                    for v in items:
+                        for f in rel_layer.getFeatures():
+                            if str(f[key_field]) == str(v):
+                                valeurs_affichees.append(str(f[value_field]))
+                                break
+
+            else:
+                valeurs_affichees = items  # sécurité
+
+            return ", ".join(valeurs_affichees)
+
+        # Dates-heure
+
         if isinstance(value, QDateTime):
             return value.toString("yyyy-MM-dd HH:mm")
         if isinstance(value, QTime):
@@ -257,14 +350,19 @@ class BaseRapportDialog(QDialog):
         except:
             pass
 
-        # ValueMap
+        if value in (None, ""):
+            return ""
+
+        # value map
         if cfg.type() == "ValueMap":
             mapping = cfg.config().get("map", {})
             for k, v in mapping.items():
                 if str(k) == str(value):
                     return v
+            return str(value)
 
-        # ValueRelation
+        # value relation
+        
         if cfg.type() == "ValueRelation":
             rel_layer_id = cfg.config().get("Layer")
             key_field = cfg.config().get("Key")
@@ -274,8 +372,10 @@ class BaseRapportDialog(QDialog):
                 for f in rel_layer.getFeatures():
                     if str(f[key_field]) == str(value):
                         return str(f[value_field])
+            return str(value)
 
         return str(value)
+
 
     def accept(self):
         #  Récupération des paramètres 

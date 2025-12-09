@@ -1,8 +1,8 @@
-# dialogs/rapport_form_mhh_dialog.py
+# dialogs/rapport_mhh_dialog.py
 
 from .base_rapport_dialog import BaseRapportDialog
 
-class RapportForm_mhhDialog(BaseRapportDialog):
+class RapportMHH(BaseRapportDialog):
     def __init__(self):
 
         champs = [
