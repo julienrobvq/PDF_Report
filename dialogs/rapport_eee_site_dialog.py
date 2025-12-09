@@ -15,7 +15,7 @@ class RapportEEEDialog(BaseRapportDialog):
         ]
 
         sections = {
-            "Identification": ["site", "Date", "Heure", "ID_Proj"],
+            "Identification": ["site", "Date", "Heure", "ID_Proj", "ID_Employ"],
             "Localisation": [
                 "site", "zgie", "region", "Munic", "mrc", "Respo",
                 "Milieu", "Repere", "Contrainte"

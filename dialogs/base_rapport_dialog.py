@@ -21,6 +21,7 @@ class BaseRapportDialog(QDialog):
         self.layer_form_name = layer_form_name
         self.champs_affiches = champs_affiches
         self.sections = sections
+
         #  Interface de base pour TOUS les rapports 
         self.setWindowTitle("Outil de création de rapport")
         self.resize(380, 420)
@@ -85,7 +86,7 @@ class BaseRapportDialog(QDialog):
         self.layer_evt = layers_evt[0]
 
         # Ajout automatique des champs événement
-        self.champs_evenement = ["Date", "Heure", "ID_Proj"]
+        self.champs_evenement = ["Date", "Heure", "ID_Proj", "ID_Employ"]
         self.champs_affiches = self.champs_evenement + self.champs_affiches
 
         self.id_field_proj = "ID_Proj"
@@ -161,7 +162,6 @@ class BaseRapportDialog(QDialog):
         for cb in self.checkboxes:
             cb.setChecked(False)
 
-
     # Section dialog
     def get_selection(self):
         id_proj = self.proj_combo.currentData()
@@ -169,124 +169,23 @@ class BaseRapportDialog(QDialog):
         titre = self.titre_rapport.text()
         return id_proj, champs, titre
 
-    # Génération du rapport 
+    
     def get_display_value(self, layer, feature, field_name):
+        return self._get_display_value_core(layer, feature, field_name)
+
+    def get_evt_display_value(self, feat_evt, field_name):
+        return self._get_display_value_core(self.layer_evt, feat_evt, field_name)
+
+    # Génération du rapport 
+    def _get_display_value_core(self, layer, feature, field_name):
         field = layer.fields().field(field_name)
         cfg = field.editorWidgetSetup()
         value = feature.attribute(field_name)
-
-        # choix multiple
-
-        if isinstance(value, str) and value.startswith("{") and value.endswith("}"):
-            raw = value[1:-1] 
-
-            items = []
-            current = ""
-            in_quotes = False
-
-            for c in raw:
-                if c == '"':
-                    in_quotes = not in_quotes
-                elif c == "," and not in_quotes:
-                    items.append(current.strip().strip('"'))
-                    current = ""
-                else:
-                    current += c
-
-            if current:
-                items.append(current.strip().strip('"'))
-
-            valeurs_affichees = []
-
-            # --- ValueMap ---
-            if cfg.type() == "ValueMap":
-                mapping = cfg.config().get("map", {})
-                for v in items:
-                    valeurs_affichees.append(mapping.get(v, v))
-
-            # --- ValueRelation ---
-            elif cfg.type() == "ValueRelation":
-                rel_layer_id = cfg.config().get("Layer")
-                key_field = cfg.config().get("Key")
-                value_field = cfg.config().get("Value")
-                rel_layer = QgsProject.instance().mapLayer(rel_layer_id)
-
-                if rel_layer:
-                    for v in items:
-                        for f in rel_layer.getFeatures():
-                            if str(f[key_field]) == str(v):
-                                valeurs_affichees.append(str(f[value_field]))
-                                break
-
-            else:
-                valeurs_affichees = items  # sécurité
-
-            return ", ".join(valeurs_affichees)
-
-        # Date - heure
-
-        if isinstance(value, QDateTime):
-            return value.toString("yyyy-MM-dd HH:mm")
-        if isinstance(value, QTime):
-            return value.toString("HH:mm")
-        if isinstance(value, QDate):
-            return value.toString("yyyy-MM-dd")
-
-        # tests QVariant
-        try:
-            inner = value
-            if hasattr(value, "toPyObject"):
-                inner = value.toPyObject()
-            if isinstance(inner, QDateTime):
-                return inner.toString("yyyy-MM-dd HH:mm")
-            if isinstance(inner, QTime):
-                return inner.toString("HH:mm")
-            if isinstance(inner, QDate):
-                return inner.toString("yyyy-MM-dd")
-        except:
-            pass
-
-        if value in (None, ""):
-            return ""
-
-        # Value map
-
-        if cfg.type() == "ValueMap":
-            mapping = cfg.config().get("map", {})
-            for k, v in mapping.items():
-                if str(k) == str(value):
-                    return v
-            return str(value)
-
-        # Value relation
-
-        if cfg.type() == "ValueRelation":
-            rel_layer_id = cfg.config().get("Layer")
-            key_field = cfg.config().get("Key")
-            value_field = cfg.config().get("Value")
-            rel_layer = QgsProject.instance().mapLayer(rel_layer_id)
-            if rel_layer:
-                for f in rel_layer.getFeatures():
-                    if str(f[key_field]) == str(value):
-                        return str(f[value_field])
-            return str(value)
-
-        return str(value)
-
-    def get_evt_display_value(self, feat_evt, field_name):
-        """Retourne la valeur affichée pour un champ de la couche Evenement."""
-        field = feat_evt.fields().field(field_name)
-        cfg = field.editorWidgetSetup()
-        value = feat_evt.attribute(field_name)
-
-        # choix multiple
-
+        
+        # --- Choix multiples ---
         if isinstance(value, str) and value.startswith("{") and value.endswith("}"):
             raw = value[1:-1]
-
-            items = []
-            current = ""
-            in_quotes = False
+            items, current, in_quotes = [], "", False
 
             for c in raw:
                 if c == '"':
@@ -302,13 +201,24 @@ class BaseRapportDialog(QDialog):
 
             valeurs_affichees = []
 
-            # --- ValueMap ---
             if cfg.type() == "ValueMap":
-                mapping = cfg.config().get("map", {})
-                for v in items:
-                    valeurs_affichees.append(mapping.get(v, v))
+                raw_map = cfg.config().get("map", {})
 
-            # --- ValueRelation ---
+                for v in items:
+                    val_aff = v
+
+                    if isinstance(raw_map, dict):
+                        val_aff = raw_map.get(v, v)
+
+                    elif isinstance(raw_map, list):
+                        for item in raw_map:
+                            if isinstance(item, dict):
+                                for k, lbl in item.items():
+                                    if str(k) == str(v):
+                                        val_aff = str(lbl)
+
+                    valeurs_affichees.append(val_aff)
+
             elif cfg.type() == "ValueRelation":
                 rel_layer_id = cfg.config().get("Layer")
                 key_field = cfg.config().get("Key")
@@ -321,14 +231,12 @@ class BaseRapportDialog(QDialog):
                             if str(f[key_field]) == str(v):
                                 valeurs_affichees.append(str(f[value_field]))
                                 break
-
             else:
-                valeurs_affichees = items  # sécurité
+                valeurs_affichees = items
 
             return ", ".join(valeurs_affichees)
 
-        # Dates-heure
-
+        # --- Dates / heures ---
         if isinstance(value, QDateTime):
             return value.toString("yyyy-MM-dd HH:mm")
         if isinstance(value, QTime):
@@ -336,11 +244,8 @@ class BaseRapportDialog(QDialog):
         if isinstance(value, QDate):
             return value.toString("yyyy-MM-dd")
 
-        # tests QVariant
         try:
-            inner = value
-            if hasattr(value, "toPyObject"):
-                inner = value.toPyObject()
+            inner = value.toPyObject() if hasattr(value, "toPyObject") else value
             if isinstance(inner, QDateTime):
                 return inner.toString("yyyy-MM-dd HH:mm")
             if isinstance(inner, QTime):
@@ -353,34 +258,46 @@ class BaseRapportDialog(QDialog):
         if value in (None, ""):
             return ""
 
-        # value map
+        # --- ValueMap ---
         if cfg.type() == "ValueMap":
-            mapping = cfg.config().get("map", {})
-            for k, v in mapping.items():
-                if str(k) == str(value):
-                    return v
+            raw_map = cfg.config().get("map", {})
+
+            # Cas 1 : ValueMap stocké sous forme de dict
+            if isinstance(raw_map, dict):
+                return raw_map.get(str(value), str(value))
+
+            # Cas 2 : ValueMap stocké sous forme de liste
+            elif isinstance(raw_map, list):
+                for item in raw_map:
+                    if isinstance(item, dict):
+                        for k, v in item.items():
+                            if str(k) == str(value):
+                                return str(v)
+
             return str(value)
 
-        # value relation
-        
+        # --- ValueRelation ---
         if cfg.type() == "ValueRelation":
             rel_layer_id = cfg.config().get("Layer")
             key_field = cfg.config().get("Key")
             value_field = cfg.config().get("Value")
             rel_layer = QgsProject.instance().mapLayer(rel_layer_id)
+
             if rel_layer:
                 for f in rel_layer.getFeatures():
                     if str(f[key_field]) == str(value):
                         return str(f[value_field])
-            return str(value)
 
         return str(value)
-
 
     def accept(self):
         #  Récupération des paramètres 
         id_proj, champs, titre_rapport = self.get_selection()
         fmt = "PDF" if self.radio_pdf.isChecked() else "Word"
+
+        self.current_id_proj = id_proj
+        self.current_champs = champs
+        self.current_titre_rapport = titre_rapport
 
         #  Extensions suggérées 
         default_name = "Rapport.pdf" if fmt == "PDF" else "Rapport.docx"
@@ -434,6 +351,8 @@ class BaseRapportDialog(QDialog):
         expr_form = f'"ID_EVEN" IN ({valeurs_str})'
         self.layer_form.selectByExpression(expr_form)
         feats_form = self.layer_form.selectedFeatures()
+        self.current_feats_evt = feats_evt
+        self.current_feats_form = feats_form
 
         if not feats_form:
             QMessageBox.warning(self, "Avertissement", "Aucun enregistrement trouvé.")
@@ -523,11 +442,15 @@ class BaseRapportDialog(QDialog):
             return
 
         # Word
+        if fmt == "Word":
+            self.export_word(file_path, story, titre_rapport)
+            super().accept()
+            return
+    def export_word(self, file_path, story, titre_rapport):
         docx = Document()
         styles = docx.styles
 
-        # Mise en page
-
+        # Mise en page (ancien code)
         styles["Normal"].paragraph_format.space_after = Pt(1.5)
         styles["Normal"].paragraph_format.space_before = Pt(1.5)
 
@@ -545,7 +468,7 @@ class BaseRapportDialog(QDialog):
         # Titre niveau 1
         docx.add_heading(titre_rapport or "Rapport", level=1)
 
-        is_first = True # évite qu'on ait deux fois le titre
+        is_first = True  # évite qu'on ait deux fois le titre
 
         for elt in story:
 
@@ -553,16 +476,13 @@ class BaseRapportDialog(QDialog):
                 is_first = False
                 continue
 
-            # Rapport
-            if isinstance(elt, RLParagraph):
+            from reportlab.platypus import Paragraph as RLParagraph, Spacer as RLSpacer, PageBreak as RLPageBreak, Image as RLImage
 
+            if isinstance(elt, RLParagraph):
                 txt = elt.text.replace("<b>", "").replace("</b>", "")
 
-                # Titre niveau 2 
                 if elt.style.name == "Heading2":
                     docx.add_heading(txt, level=2)
-
-                # Lise a puce
                 else:
                     if " : " in txt:
                         alias, valeur = txt.split(" : ", 1)
@@ -573,11 +493,9 @@ class BaseRapportDialog(QDialog):
                     else:
                         docx.add_paragraph(txt, style="List Bullet")
 
-            # Saut de page après une entité
             elif isinstance(elt, RLPageBreak):
                 docx.add_page_break()
 
-            #  image
             elif isinstance(elt, RLImage):
                 img_path = elt.filename
                 if os.path.exists(img_path):
@@ -585,4 +503,5 @@ class BaseRapportDialog(QDialog):
 
         docx.save(file_path)
         QMessageBox.information(self, "Bravo", "Word généré")
+
         super().accept()
