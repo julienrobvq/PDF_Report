@@ -446,6 +446,7 @@ class BaseRapportDialog(QDialog):
             self.export_word(file_path, story, titre_rapport)
             super().accept()
             return
+    
     def export_word(self, file_path, story, titre_rapport):
         docx = Document()
         styles = docx.styles
