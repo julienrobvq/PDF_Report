@@ -2,8 +2,6 @@
 
 Cette extension QGIS permet de générer des rapports aux formats word et pdf depuis les formulaires de Géofluence.
 
-La mise en page des rapports est normalisée, permettant une génération rapide et efficace et rapports simples. Il est possible de personnaliser la mise en page de certains rapport au besoin.
-
 ## Fonctionnement
 
 Vous devez d'abord sélectionner un rapport à remplir depuis le menu des extensions. Chaque rapport est associé à un formulaire spécifique. Pour produire un rapport, le formulaire doit évidemment être dans le projet actif.
