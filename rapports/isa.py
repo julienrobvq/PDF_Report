@@ -1,8 +1,8 @@
-# dialogs/rapport_isa_dialog.py
+# rapports/isa.py
 
-from .base_rapport_dialog import BaseRapportDialog
-from docxtpl import DocxTemplate
 import os
+from .base import BaseRapportDialog
+from docxtpl import DocxTemplate
 from qgis.core import QgsProject
 from qgis.PyQt.QtWidgets import QMessageBox
 
@@ -14,9 +14,7 @@ class RapportISA(BaseRapportDialog):
         super().__init__(
             layer_form_name="Form_ISA_Propriete",
             champs_affiches=[],
-            sections={},
-            parent=parent,
-            custom_mode=True
+            parent=parent
         )
 
         # si couche prop est pas la on cancel
@@ -49,11 +47,11 @@ class RapportISA(BaseRapportDialog):
             return 0
         return super().exec_()
 
-    def export_word(self, file_path, story, titre_rapport):
+    def export_word(self, file_path):
 
         template_path = os.path.join(
             os.path.dirname(__file__),
-            "ISA_Template.docx"
+            "template_isa.docx"
         )
         doc = DocxTemplate(template_path)
 
@@ -78,7 +76,6 @@ class RapportISA(BaseRapportDialog):
             "puits": {},
             "fosse": {},
             "epurateur": {},
-            "titre_rapport": titre_rapport
         }
 
         for champ in self.champs_affiches:
@@ -110,4 +107,4 @@ class RapportISA(BaseRapportDialog):
 
         doc.render(context)
         doc.save(file_path)
-        QMessageBox.information(self, "Bravo", "Lettre ISA généré")
+        QMessageBox.information(self, "Bravo", "Lettre ISA générée")

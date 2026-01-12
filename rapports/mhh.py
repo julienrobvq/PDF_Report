@@ -1,6 +1,6 @@
-# dialogs/rapport_mhh_dialog.py
+# rapports/mhh.py
 
-from .base_rapport_dialog import BaseRapportDialog
+from .base import BaseRapportDialog
 from docxtpl import DocxTemplate
 import os
 from qgis.PyQt.QtWidgets import QMessageBox
@@ -23,36 +23,26 @@ class RapportMHH(BaseRapportDialog):
             "Montic_pct",
         ]
 
-        # Sections vides (tu peux en ajouter plus tard pour le PDF)
-        sections = {}
-
         super().__init__(
             layer_form_name="Form_MHH",
             champs_affiches=champs_affiches,
-            sections=sections,
             parent=parent,
-            custom_mode=True
         )
-        # si couche MHH est pas la on cancel
-        if not hasattr(self, "layer_form"):
-            self._init_ok = False
-            return
-
         self._init_ok = True
     
     def exec_(self):
         if not getattr(self, "_init_ok", True):
             return 0
         return super().exec_()
-    def export_word(self, file_path, story, titre_rapport):
+    def export_word(self, file_path):
 
         template_path = os.path.join(
             os.path.dirname(__file__),
-            "MHH_Template.docx"
+            "template_mhh.docx"
         )
         doc = DocxTemplate(template_path)
 
-        # Première fiche
+        # récupère la premiere feature
         feat = self.current_feats_form[0]
         feats_evt = self.current_feats_evt
         feat_evt = next(
@@ -72,8 +62,6 @@ class RapportMHH(BaseRapportDialog):
                 context[champ] = self.get_evt_display_value(
                     feat_evt, champ
                 )
-
-        context["titre_rapport"] = titre_rapport
 
         doc.render(context)
         doc.save(file_path)
