@@ -17,7 +17,6 @@ class RapportISA(BaseRapport):
             parent=parent
         )
 
-        # Si couche absente on annule
         if not hasattr(self, "layer_form"):
             self._init_ok = False
             return
@@ -25,7 +24,6 @@ class RapportISA(BaseRapport):
         self._init_ok = True
 
         self.layer_prop = self.layer_form
-
         self.layer_puits = QgsProject.instance().mapLayersByName("Form_ISA_Puits")[0]
         self.layer_fosse = QgsProject.instance().mapLayersByName("Form_ISA_Fosse")[0]
         self.layer_epur = QgsProject.instance().mapLayersByName("Form_ISA_Epurateur")[0]
@@ -49,63 +47,57 @@ class RapportISA(BaseRapport):
 
     def export_word(self, file_path):
 
-        template_path = os.path.join(
-            os.path.dirname(__file__),
-            "templates",
-            "template_isa.docx"
-        )
+        template_path = os.path.join(os.path.dirname(__file__), "templates", "template_isa.docx")
         doc = DocxTemplate(template_path)
 
-        feat_prop = self.current_feats_form[0]
-        id_ref = feat_prop["id_instsept"]
+        items = []
 
-        feat_puits = next(
-            (f for f in self.layer_puits.getFeatures() if f["adr_comp"] == id_ref),
-            None
-        )
-        feat_fosse = next(
-            (f for f in self.layer_fosse.getFeatures() if f["adr_comp"] == id_ref),
-            None
-        )
-        feat_epur = next(
-            (f for f in self.layer_epur.getFeatures() if f["adr_comp"] == id_ref),
-            None
-        )
+        for feat_prop in self.current_feats_form:
+            id_ref = feat_prop["id_instsept"]
 
-        context = {
-            "propriete": {},
-            "puits": {},
-            "fosse": {},
-            "epurateur": {},
-        }
+            feat_puits = next((f for f in self.layer_puits.getFeatures() if f["adr_comp"] == id_ref), None)
+            feat_fosse = next((f for f in self.layer_fosse.getFeatures() if f["adr_comp"] == id_ref), None)
+            feat_epur = next((f for f in self.layer_epur.getFeatures() if f["adr_comp"] == id_ref), None)
 
-        for champ in self.champs_affiches:
-            if champ in self.layer_prop.fields().names():
-                context["propriete"][champ] = self.get_display_value(
-                    self.layer_prop, feat_prop, champ
-                )
+            item = {
+                "propriete": {},
+                "puits": {},
+                "fosse": {},
+                "epurateur": {},
+            }
 
-        if feat_puits:
+            # propriete
             for champ in self.champs_affiches:
-                if champ in self.layer_puits.fields().names():
-                    context["puits"][champ] = self.get_display_value(
-                        self.layer_puits, feat_puits, champ
-                    )
+                if champ in self.layer_prop.fields().names():
+                    item["propriete"][champ] = self.get_display_value(self.layer_prop, feat_prop, champ)
 
-        if feat_fosse:
-            for champ in self.champs_affiches:
-                if champ in self.layer_fosse.fields().names():
-                    context["fosse"][champ] = self.get_display_value(
-                        self.layer_fosse, feat_fosse, champ
-                    )
+            # puits
+            if feat_puits:
+                for champ in self.champs_affiches:
+                    if champ in self.layer_puits.fields().names():
+                        item["puits"][champ] = self.get_display_value(self.layer_puits, feat_puits, champ)
 
-        if feat_epur:
-            for champ in self.champs_affiches:
-                if champ in self.layer_epur.fields().names():
-                    context["epurateur"][champ] = self.get_display_value(
-                        self.layer_epur, feat_epur, champ
-                    )
+            # fosse
+            if feat_fosse:
+                for champ in self.champs_affiches:
+                    if champ in self.layer_fosse.fields().names():
+                        item["fosse"][champ] = self.get_display_value(self.layer_fosse, feat_fosse, champ)
+
+            # epurateur
+            if feat_epur:
+                for champ in self.champs_affiches:
+                    if champ in self.layer_epur.fields().names():
+                        item["epurateur"][champ] = self.get_display_value(self.layer_epur, feat_epur, champ)
+            
+            items.append(item)
+        
+        context = {"items": items}
 
         doc.render(context)
         doc.save(file_path)
+        
+        for l in (self.layer_form, self.layer_puits, self.layer_fosse, self.layer_epur):
+            if l:
+                l.removeSelection()
+        
         QMessageBox.information(self, "Bravo", "Lettre ISA générée")

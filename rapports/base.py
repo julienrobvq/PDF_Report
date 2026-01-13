@@ -15,12 +15,44 @@ class BaseRapport(QDialog):
         #  Interface de base
         
         self.setWindowTitle("Outil de création de rapport")
-        self.resize(380, 100)
+        self.resize(250, 150)
 
         layout = QVBoxLayout(self)
+
+        # Projet
+        
         layout.addWidget(QLabel("Sélectionnez un projet :"))
         self.proj_combo = QComboBox()
         layout.addWidget(self.proj_combo)
+
+        # Dates
+
+        self.select_dates = QCheckBox("Sélection par date")
+        layout.addWidget(self.select_dates)
+
+        dates_layout = QHBoxLayout()
+        self.date_debut = QDateEdit()
+        self.date_debut.setCalendarPopup(True)
+        self.date_debut.setDisplayFormat("yyyy-MM-dd")
+
+        self.date_fin = QDateEdit()
+        self.date_fin.setCalendarPopup(True)
+        self.date_fin.setDisplayFormat("yyyy-MM-dd")
+
+        dates_layout.addWidget(QLabel("Début"))
+        dates_layout.addWidget(self.date_debut)
+        dates_layout.addWidget(QLabel("Fin"))
+        dates_layout.addWidget(self.date_fin)
+        layout.addLayout(dates_layout)
+
+        today = QDate.currentDate()
+        self.date_fin.setDate(today)
+        self.date_debut.setDate(today.addMonths(-1))
+
+        self.date_debut.setEnabled(False)
+        self.date_fin.setEnabled(False)
+        self.select_dates.toggled.connect(self.date_debut.setEnabled)
+        self.select_dates.toggled.connect(self.date_fin.setEnabled)
 
         # Bouton
 
@@ -47,16 +79,19 @@ class BaseRapport(QDialog):
             QMessageBox.critical(self, "Erreur", "Couche 'Evenement introuvable.")
             self.reject(); return
 
+        # Projet
+
         self.layer_even = layers_even[0]
         self.id_field_proj = "ID_Proj"
-        self.remplir_projets()
+        self.liste_projets()
+
     
     def export_word(self, file_path):
         raise NotImplementedError("Erreur de génération de rapport")
 
     # Liste des projets
 
-    def remplir_projets(self):
+    def liste_projets(self):
         field = self.layer_even.fields().field(self.id_field_proj)
         cfg = field.editorWidgetSetup()
 
@@ -89,6 +124,9 @@ class BaseRapport(QDialog):
                             break
 
             projets_dict[str(raw_value)] = str(display_value)
+
+        self.proj_combo.clear()
+        self.proj_combo.addItem("(pas de sélection)", None)
 
         for raw, display in sorted(projets_dict.items(), key=lambda x: x[1]):
             self.proj_combo.addItem(display, raw)
@@ -229,47 +267,68 @@ class BaseRapport(QDialog):
         return str(value)
 
     def accept(self):
-        
-        # Paramètres d'enregistrement
+
         id_proj = self.get_selection()
+        use_dates = self.select_dates.isChecked()
         self.current_id_proj = id_proj
+
+        # On exige un critère de sélection 
+
+        if (id_proj in (None, "", " ")) and (not use_dates):
+            QMessageBox.warning(self, "Aucune sélection", "Vous devez sélectionner des entités par projet ou par dates.")
+            return
+
+
         default_name = "Rapport.docx"
-        
-        file_path, _ = QFileDialog.getSaveFileName(
-            self,
-            "Enregistrer le rapport",
-            default_name
-        )
+        file_path, _ = QFileDialog.getSaveFileName(self, "Enregistrer le rapport", default_name)
 
         if not file_path:
             return
         if not file_path.lower().endswith(".docx"):
             file_path += ".docx"
 
-        # Récupération des données
+        # expression de sélection
+        
+        selection = []
+
+        if id_proj not in (None, "", " "):
+            selection.append(f"\"ID_Proj\" = '{id_proj}'")
+
+        if use_dates:
+            d1 = self.date_debut.date().toString("yyyy-MM-dd")
+            d2 = self.date_fin.date().toString("yyyy-MM-dd")
+
+            # Assure l'ordre des dates
+            
+            if self.date_debut.date() > self.date_fin.date():
+                d1, d2 = d2, d1
+
+            selection.append(f"\"Date\" BETWEEN '{d1}' AND '{d2}'")
+
+        expr_even = " AND ".join(selection)
+
+        # Sélection des données
 
         layer_even = self.layer_even
-        expr_even = QgsExpression.createFieldEqualityExpression("ID_Proj", str(id_proj))
         layer_even.selectByExpression(expr_even)
         feats_even = layer_even.selectedFeatures()
 
         if not feats_even:
-            QMessageBox.warning(self, "Avertissement", f"Aucun événement trouvé pour {id_proj}.")
+            QMessageBox.warning(self, "Avertissement", "Aucun enregistrement sélectionné avec les critères.")
             return
 
-        id_even_values = [
-            f["ID_EVEN"] for f in feats_even
-            if f["ID_EVEN"] not in (None, "", " ")
-        ]
 
+        id_even_values = [f["ID_EVEN"] for f in feats_even if f["ID_EVEN"] not in (None, "", " ")]
         if not id_even_values:
-            QMessageBox.warning(self, "Avertissement", "Aucun ID_EVEN trouvé pour ce projet.")
+            QMessageBox.warning(self, "Avertissement", "Aucun événement trouvé avec les critères.")
             return
 
         valeurs_str = ",".join([f"'{v}'" for v in id_even_values])
-        expr_form = f'"ID_EVEN" IN ({valeurs_str})'
+        expr_form = f"\"ID_EVEN\" IN ({valeurs_str})"
+
         self.layer_form.selectByExpression(expr_form)
         feats_form = self.layer_form.selectedFeatures()
+
         self.current_feats_even = feats_even
         self.current_feats_form = feats_form
 
@@ -279,7 +338,7 @@ class BaseRapport(QDialog):
 
         self.export_word(file_path)
         super().accept()
-    
+
     def exec_(self):
         if not getattr(self, "_init_ok", True):
             return 0

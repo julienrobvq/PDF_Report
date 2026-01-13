@@ -18,6 +18,8 @@ Pour ce faire, copier simplement le contenu du dossier "packages" dans le dossie
 
 Redémarrer QGIS pour activer les nouveaux packages.
 
+Une fois les packages installés, vous n'avez plus besoin du dossier "packages". Vous pouvez l'effacer.
+
 ## Pour les photos
 
 Pour que les photos prises à partir des formulaires apparaissent dans les rapports, un dossier DCIM doit exister au même endroit que le projet QGIS actif. 
