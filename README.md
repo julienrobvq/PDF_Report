@@ -6,7 +6,7 @@ Cette extension QGIS permet de générer des rapports aux formats word depuis le
 
 Vous devez d'abord sélectionner un rapport à remplir depuis le menu des extensions. Chaque rapport est associé à un formulaire spécifique. Seuls les rapports pour lesquels le formulaire est présent dans le projet actif sont proposés à l'utilisateur.
 
-On vous demande de sélectionner un projet ou une période pour sélectionner les entités à inclure dans le rapport. Les projets et les dates proviennent de la couche Événement, qui doit aussi se trouver dans le projet actif pour assurer le fonctionnement.
+On vous demande de choisir un projet ou une période pour sélectionner les entités à inclure dans le rapport. Les projets et les dates proviennent de la couche Événement, qui doit aussi se trouver dans le projet actif pour assurer le fonctionnement.
 
 ![image](./plugin.jpg)
 
