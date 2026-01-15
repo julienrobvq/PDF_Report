@@ -39,6 +39,18 @@ class RapportMHH(BaseRapport):
             "Depres_Pct",
             "Montic_Pct",
             "Date",
+            "Evalu_Princ",
+            "Veg_Pert",
+            "Sol_Pert",
+            "Hydro_Pert",
+            "MAnth",
+            "Barr_Cast",
+            "Type_Pert",
+            "pression",
+            "press_distance",
+            "Eau_SurfLib",
+            "Lien_Hydro",
+            "Lien_Hydro_Type",
         ]
 
     def exec_(self):
