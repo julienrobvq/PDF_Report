@@ -10,7 +10,6 @@ from qgis.PyQt.QtWidgets import QMessageBox
 class RapportMHH(BaseRapport):
 
     def __init__(self, parent=None):
-
         super().__init__(
             layer_form_name="Form_MHH",
             champs_affiches=[],
@@ -29,6 +28,7 @@ class RapportMHH(BaseRapport):
         self.layer_pert = QgsProject.instance().mapLayersByName("FormSect_TypePert")[0]
         self.layer_veget = QgsProject.instance().mapLayersByName("FormSect_SP_Veget")[0]
 
+        # MHH + Evenement
         self.champs_affiches = [
             "Nom_Station",
             "num_echant",
@@ -45,7 +45,6 @@ class RapportMHH(BaseRapport):
             "Hydro_Pert",
             "MAnth",
             "Barr_Cast",
-            "Type_Pert",
             "pression",
             "press_distance",
             "Eau_SurfLib",
@@ -65,78 +64,114 @@ class RapportMHH(BaseRapport):
             "Lentic_Hyper",
             "Racin_Surf",
             "Racin_Adven",
+            "Prof_Roc",
+            "sol_redox",
+            "sol_reduct",
+            "Cas_Cpx",
+            "Prof_Nap",
+            "Class_Draing",
+            "Draing_Oblq",
+            "Veg_DomH",
+            "Veg_DomNH",
+            "Bil_Veg",
+            "Bil_Hyd",
+            "Bil_SolHydro",
+            "Bilan_MH",
+            "Bil_Comment",
+            "type_mh",
+            "tourb_type",
         ]
+
+        self.sol_fields = ["Typ_Horiz", "Epais_Horiz", "Typ_SolOrg", "prof_debut", "prof_fin",
+                           "horizon", "Typ_Text", "Coul_Teint", "Mouc_Teint", "Mouc_Abond", "Mouc_Dim", "Mouc_Ctrst",]
+        self.pert_fields = ["Type_Pert"]
+        self.veget_fields = ["Strate", "Espece", "hauteur", "Recouv_Abs_Num", "Recouv_Rel_Num", "Dom", "Statut",]
 
     def exec_(self):
         if not getattr(self, "_init_ok", True):
             return 0
         return super().exec_()
 
-    def export_word(self, file_path):
+    def _feat_to_dict(self, layer, feat, fields):
+        d = {}
+        for name in fields:
+            if name in layer.fields().names():
+                d[name] = self.get_display_value(layer, feat, name)
+        return d
 
+    def export_word(self, file_path):
         template_path = os.path.join(os.path.dirname(__file__), "templates", "template_mhh.docx")
         doc = DocxTemplate(template_path)
 
         items = []
 
+        even_by_id = {f["ID_EVEN"]: f for f in self.current_feats_even if f["ID_EVEN"] not in (None, "", " ")}
+
+        sols_by_mhh = {}
+        for f in self.layer_sol.getFeatures():
+            k = f["ID_MHH"]
+            if k in (None, "", " "):
+                continue
+            sols_by_mhh.setdefault(k, []).append(f)
+
+        perts_by_mhh = {}
+        for f in self.layer_pert.getFeatures():
+            k = f["ID_MH"]
+            if k in (None, "", " "):
+                continue
+            perts_by_mhh.setdefault(k, []).append(f)
+
+
+        vegs_by_mhh = {}
+        for f in self.layer_veget.getFeatures():
+            k = f["ID_MHH"]
+            if k in (None, "", " "):
+                continue
+            vegs_by_mhh.setdefault(k, []).append(f)
+
         for feat_mhh in self.current_feats_form:
-            id_ref = feat_mhh["ID_MHH"]
-
-            feat_even = next(
-                (f for f in self.current_feats_even if f["ID_EVEN"] == feat_mhh["ID_EVEN"]),
-                None
-            )
-
-            feat_sol = next((f for f in self.layer_sol.getFeatures() if f["ID_MHH"] == id_ref), None)
-            feat_pert = next((f for f in self.layer_pert.getFeatures() if f["ID_MH"] == id_ref), None)
-            feat_veget = next((f for f in self.layer_veget.getFeatures() if f["ID_MHH"] == id_ref), None)
+            id_mhh = feat_mhh["ID_MHH"]
+            id_even = feat_mhh["ID_EVEN"]
+            feat_even = even_by_id.get(id_even)
 
             item = {
                 "mhh": {},
                 "even": {},
-                "sol": {},
-                "pert": {},
-                "veget": {},
+                "sols": [],
+                "perts": [],
+                "vegets": [],
             }
 
-            # mhh
+            # MHH
             for champ in self.champs_affiches:
                 if champ in self.layer_mhh.fields().names():
                     item["mhh"][champ] = self.get_display_value(self.layer_mhh, feat_mhh, champ)
 
-            # evenement
+            # Evenement
             if feat_even:
                 for champ in self.champs_affiches:
                     if champ in self.layer_even.fields().names():
                         item["even"][champ] = self.get_display_value(self.layer_even, feat_even, champ)
 
-            # sol
-            if feat_sol:
-                for champ in self.champs_affiches:
-                    if champ in self.layer_sol.fields().names():
-                        item["sol"][champ] = self.get_display_value(self.layer_sol, feat_sol, champ)
+            # Sols
+            for f in sols_by_mhh.get(id_mhh, []):
+                item["sols"].append(self._feat_to_dict(self.layer_sol, f, self.sol_fields))
 
-            # perturbations
-            if feat_pert:
-                for champ in self.champs_affiches:
-                    if champ in self.layer_pert.fields().names():
-                        item["pert"][champ] = self.get_display_value(self.layer_pert, feat_pert, champ)
+            # Perturbations
+            for f in perts_by_mhh.get(id_mhh, []):
+                item["perts"].append(self._feat_to_dict(self.layer_pert, f, self.pert_fields))
 
-            # vegetation
-            if feat_veget:
-                for champ in self.champs_affiches:
-                    if champ in self.layer_veget.fields().names():
-                        item["veget"][champ] = self.get_display_value(self.layer_veget, feat_veget, champ)
+            # Végétation
+            for f in vegs_by_mhh.get(id_mhh, []):
+                item["vegets"].append(self._feat_to_dict(self.layer_veget, f, self.veget_fields))
 
             items.append(item)
 
-        context = {"items": items}
-
-        doc.render(context)
+        doc.render({"items": items})
         doc.save(file_path)
 
-        for l in (self.layer_even, self.layer_form, self.layer_sol, self.layer_pert, self.layer_veget):
-            if l:
-                l.removeSelection()
+        for lyr in (self.layer_even, self.layer_form, self.layer_sol, self.layer_pert, self.layer_veget):
+            if lyr:
+                lyr.removeSelection()
 
-        QMessageBox.information(self, "Bravo", f"Rapport Milieu humide généré.")
+        QMessageBox.information(self, "Rapport", "Rapport Milieu humide généré.")
