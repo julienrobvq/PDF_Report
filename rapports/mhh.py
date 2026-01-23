@@ -51,6 +51,20 @@ class RapportMHH(BaseRapport):
             "Eau_SurfLib",
             "Lien_Hydro",
             "Lien_Hydro_Type",
+            "Litiere_Noir",
+            "Effet_Rhizo",
+            "Ecorc_Erod",
+            "Inond",
+            "Satur_Surf",
+            "Lign_Marqu_Eau",
+            "Debris_Depot",
+            "Odeur_Souf",
+            "Racine_Hors",
+            "Mousse_Tronc",
+            "Souch_Hyper",
+            "Lentic_Hyper",
+            "Racin_Surf",
+            "Racin_Adven",
         ]
 
     def exec_(self):
