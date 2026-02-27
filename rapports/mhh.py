@@ -28,7 +28,7 @@ class RapportMHH(BaseRapport):
         self.layer_pert = QgsProject.instance().mapLayersByName("FormSect_TypePert")[0]
         self.layer_veget = QgsProject.instance().mapLayersByName("FormSect_SP_Veget")[0]
 
-        # MHH + Evenement
+        # MHH - Evenement
         self.champs_affiches = [
             "Nom_Station",
             "num_echant",

@@ -4,24 +4,28 @@ Cette extension QGIS permet de générer des rapports aux formats word depuis le
 
 ## Fonctionnement
 
-Vous devez d'abord sélectionner un rapport à remplir depuis le menu des extensions. Chaque rapport est associé à un formulaire spécifique. Seuls les rapports pour lesquels le formulaire est présent dans le projet actif sont proposés à l'utilisateur.
+1. Sélectionner un rapport depuis le menu des extensions. Chaque rapport est associé à un formulaire spécifique. Le formulaire doit être dans le projet actif pour produire un rapport.
 
-On vous demande de choisir un projet ou une période pour sélectionner les entités à inclure dans le rapport. Les projets et les dates proviennent de la couche Événement, qui doit aussi se trouver dans le projet actif pour assurer le fonctionnement.
+2. Choisir un projet (table événement) ou une période (date de début et de fin) pour sélectionner les entités à inclure dans le rapport. La table événement doit être dans le projet actif.
 
-![image](./plugin.jpg)
+![image](./img/plugin.jpg)
 
 ## Installation des dépendances
 
-Pour générer des rapports au format Word, vous devez installer certains packages dans l'environnement de QGIS.
+L'extension nécessite l'installation de dépendances. 
 
-Pour ce faire, copier simplement le contenu du dossier "packages" dans le dossier site-packages de QGIS, sur votre poste de travail : "C:\Program Files\QGIS 3.40.11\apps\Python312\Lib\site-packages".
+1. Installer l'extension qpip : https://plugins.qgis.org/plugins/a00_qpip/#plugin-details (accessible depuis de gestionnaire des extensions de qgis).
+    
+    - qpip est un outil qui permet de gérer simplement les dépendances python dans qgis.
 
-Redémarrer QGIS pour activer les nouveaux packages.
+2. Activer l'extension Rapports Géofluence. Au moment de l'activation une fenêtre qpip s'ouvre et identifie les dépendances à installer. Cliquer sur ok pour lancer l'installation.
 
-Une fois les packages installés, vous n'avez plus besoin du dossier "packages". Vous pouvez l'effacer.
+![image](./img/qpip.jpg)
+
+4. Il est possible que vous ayez à activer le plugin à nouveau pour le voir apparaitre dans le menu des extensions (simplement à cocher l'extension dans le gestionnaire).
 
 ## Pour les photos
 
-Pour que les photos prises à partir des formulaires apparaissent dans les rapports, un dossier DCIM doit exister au même endroit que le projet QGIS actif. 
+Pour que les photos prises à partir des formulaires apparaissent dans les rapports, un dossier DCIM doit exister au même endroit que le projet QGIS actif.
 
 Placer vos fichiers photos dans ce dossier en vous assurant que les noms des fichiers correspondent à ceux qu'on retrouve dans le formulaire. Si vous n'avez pas modifié les noms des fichiers après la collecte des données, vous ne devriez pas rencontrer de problème.
